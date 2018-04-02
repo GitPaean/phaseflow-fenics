@@ -69,17 +69,28 @@ class PhaseChangeSimulation(phaseflow.simulation.Simulation):
         return f_B
         
     
-    def make_semi_phasefield_function(self):
+    def make_semi_phasefield_function_and_its_derivative(self):
         """ Semi-phase-field mapping from temperature """
         T_r = fenics.Constant(self.regularization_central_temperature)
         
         r = fenics.Constant(self.regularization_smoothing_parameter)
         
         def phi(T):
-        
+            
             return 0.5*(1. + fenics.tanh((T_r - T)/r))
+            
+            
+        def sech(theta):
     
-        return phi
+            return 1./fenics.cosh(theta)
+            
+            
+        def dphi(T):
+            """ Here we write the derivate manually, but there's probably a symbolic way to do it. """
+            return -sech((T_r - T)/r)**2/(2.*r)
+            
+    
+        return phi, dphi
         
         
     def make_phase_dependent_material_property_function(self, P_L, P_S):
@@ -123,10 +134,6 @@ class PhaseChangeSimulation(phaseflow.simulation.Simulation):
         
         T = [T_np1, T_n]
         
-        _phi = self.make_semi_phasefield_function()
-        
-        phi = [_phi(T_np1), _phi(T_n)]
-        
         if self.second_order_time_discretization:
             
             p_nm1, u_nm1, T_nm1 = fenics.split(self.old_old_state.solution)
@@ -134,8 +141,6 @@ class PhaseChangeSimulation(phaseflow.simulation.Simulation):
             u.append(u_nm1)
             
             T.append(T_nm1)
-            
-            phi.append(_phi(T_nm1))
         
         if self.second_order_time_discretization:
         
@@ -149,9 +154,7 @@ class PhaseChangeSimulation(phaseflow.simulation.Simulation):
         
         T_t = self.apply_time_discretization(Delta_t, T)
         
-        phi_t = self.apply_time_discretization(Delta_t, phi)  # @todo This is wrong.
-        
-        return u_t, T_t, phi_t
+        return u_t, T_t
     
     
     def setup_governing_form(self):
@@ -162,7 +165,7 @@ class PhaseChangeSimulation(phaseflow.simulation.Simulation):
         
         f_B = self.make_buoyancy_function()
         
-        phi = self.make_semi_phasefield_function()
+        phi, dphi = self.make_semi_phasefield_function_and_its_derivative()
         
         mu = self.make_phase_dependent_material_property_function(
             P_L = fenics.Constant(self.liquid_viscosity),
@@ -172,7 +175,7 @@ class PhaseChangeSimulation(phaseflow.simulation.Simulation):
         
         p, u, T = fenics.split(self.state.solution)
         
-        u_t, T_t, phi_t = self.make_time_discrete_terms()
+        u_t, T_t = self.make_time_discrete_terms()
         
         psi_p, psi_u, psi_T = fenics.TestFunctions(self.function_space)
         
@@ -185,7 +188,7 @@ class PhaseChangeSimulation(phaseflow.simulation.Simulation):
             + dot(psi_u, u_t + f_B(T) + dot(grad(u), u))
             - div(psi_u)*p 
             + 2.*mu(phi(T))*inner(sym(grad(psi_u)), sym(grad(u)))
-            + psi_T*(T_t - 1./Ste*phi_t)
+            + psi_T*(T_t - 1./Ste*dphi(T)*T_t)
             + dot(grad(psi_T), 1./Pr*grad(T) - T*u)
             )*dx
         

@@ -419,9 +419,9 @@ class StefanProblemBenchmarkPhaseChangeSimulation(BenchmarkPhaseChangeSimulation
         """
         BenchmarkPhaseChangeSimulation.__init__(self)
         
-        self.initial_uniform_cell_count = 4
+        self.initial_uniform_cell_count = 2048
         
-        self.initial_hot_boundary_refinement_cycles = 8
+        self.initial_hot_boundary_refinement_cycles = 0
         
         self.initial_pci_position = None  # When None, the position will be set by a rule.
         
@@ -441,7 +441,7 @@ class StefanProblemBenchmarkPhaseChangeSimulation(BenchmarkPhaseChangeSimulation
         
         self.output_dir += "stefan_problem/"
         
-        self.adaptive_goal_tolerance = 1.e-6
+        self.adaptive_goal_tolerance = 1.e32
         
         self.relative_tolerance = 2.e-2
         
@@ -489,7 +489,7 @@ class StefanProblemBenchmarkPhaseChangeSimulation(BenchmarkPhaseChangeSimulation
         """ Locally refine near the hot boundary """
         for i in range(self.initial_hot_boundary_refinement_cycles):
             
-            cell_markers = fenics.MeshFunction("bool", self.mesh, 2, False)
+            cell_markers = fenics.MeshFunction("bool", self.mesh, self.mesh.topology().dim(), False)
             
             cell_markers.set_all(False)
             
@@ -526,7 +526,7 @@ class StefanProblemBenchmarkPhaseChangeSimulation(BenchmarkPhaseChangeSimulation
         """
         p, u, T = fenics.split(self.state.solution)
         
-        phi = self.make_semi_phasefield_function()
+        phi, dphi = self.make_semi_phasefield_function_and_its_derivative()
         
         self.adaptive_goal_form = phi(T)*self.integration_metric
         
