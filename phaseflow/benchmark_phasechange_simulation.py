@@ -419,9 +419,9 @@ class StefanProblemBenchmarkPhaseChangeSimulation(BenchmarkPhaseChangeSimulation
         """
         BenchmarkPhaseChangeSimulation.__init__(self)
         
-        self.initial_uniform_cell_count = 2048
+        self.initial_uniform_cell_count = 4
         
-        self.initial_hot_boundary_refinement_cycles = 0
+        self.initial_hot_boundary_refinement_cycles = 8
         
         self.initial_pci_position = None  # When None, the position will be set by a rule.
         
@@ -441,11 +441,15 @@ class StefanProblemBenchmarkPhaseChangeSimulation(BenchmarkPhaseChangeSimulation
         
         self.output_dir += "stefan_problem/"
         
-        self.adaptive_goal_tolerance = 1.e32
+        self.adaptive_goal_tolerance = 1.e-6
         
         self.relative_tolerance = 2.e-2
         
         self.absolute_tolerance = 1.e-2
+        
+        self.nonlinear_solver_relaxation = 0.45
+        
+        self.nonlinear_solver_max_iterations = 200
         
         
     def setup_derived_attributes(self):
