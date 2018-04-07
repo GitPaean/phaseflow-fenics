@@ -421,7 +421,7 @@ class StefanProblemBenchmarkPhaseChangeSimulation(BenchmarkPhaseChangeSimulation
         
         self.initial_uniform_cell_count = 4
         
-        self.initial_hot_boundary_refinement_cycles = 8
+        self.initial_hot_boundary_refinement_cycles = 9
         
         self.initial_pci_position = None  # When None, the position will be set by a rule.
         
