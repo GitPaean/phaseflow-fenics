@@ -433,9 +433,11 @@ class StefanProblemBenchmarkPhaseChangeSimulation(BenchmarkPhaseChangeSimulation
         
         self.gravity = (0.,)  # The Stefan problem does not consider momentum.
         
+        self.regularization_central_temperature = 0.
+        
         self.regularization_smoothing_parameter = 0.005
         
-        self.timestep_size = 1.e-3
+        self.timestep_size = 0.25e-3
         
         self.end_time = 0.1
         
