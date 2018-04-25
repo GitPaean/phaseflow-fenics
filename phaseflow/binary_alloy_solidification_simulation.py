@@ -66,13 +66,14 @@ class BinaryAlloySolidificationSimulation(phaseflow.simulation.Simulation):
         
         g = fenics.Constant(self.gravity)
         
+        """ We consider the slope as $m = C_E/T_E$ so that we may use $m = 0$ for pure water. """
         m = fenics.Constant(self.slope_of_ideal_liquidus)
         
         def f_B(T):
             """ Idealized linear Boussinesq Buoyancy with $Re = 1$ """
-            C = T/m
+            C = m*T
             
-            return (T*Ra_T + C*Ra_C/Le)/Pr*g
+            return (T*Ra_T - C*Ra_C/Le)/Pr*g
             
             
         return f_B
@@ -159,7 +160,7 @@ class BinaryAlloySolidificationSimulation(phaseflow.simulation.Simulation):
         self.governing_form += (
             dot(psi_u, u_t + dot(grad(u), u) + f_B(T))
             - div(psi_u)*p
-            + 2.*inner(sym(grad(psi_u)), (mu_S + phi*(mu_L - mu_S))*sym(grad(u)))
+            + 2.*inner(sym(grad(psi_u)), (mu_L + phi*(mu_S - mu_L))*sym(grad(u)))
             )*dx
             
         """ Enthalpy """
