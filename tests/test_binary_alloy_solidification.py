@@ -37,11 +37,11 @@ class FreezingSaltWaterFromAboveSimulation(BaseSimulation):
         
         self.liquid_viscosity = 1.
         
-        self.end_time = 6.
+        self.end_time = 4.
         
         self.timestep_size = 2.
         
-        self.initial_cold_wall_refinement_cycles = 6
+        self.initial_cold_wall_refinement_cycles = 7
         
         self.initial_mesh_size = (1, 1)
         
@@ -154,8 +154,22 @@ class FreezingSaltWaterFromAboveSimulation(BaseSimulation):
         
         self.adaptive_goal_form = phi*self.integration_metric
         
-       
+        
+def test_freezing_salt_water_from_above_without_gravity():
 
+    sim = FreezingSaltWaterFromAboveSimulation()
+    
+    sim.output_dir += "without_gravity/"
+    
+    sim.gravity = (0., 0.)
+    
+    sim.timestep_size = 8.
+    
+    sim.end_time = 2.*sim.timestep_size
+    
+    sim.run()
+    
+    
 def test_freezing_salt_water_from_above():
 
     FreezingSaltWaterFromAboveSimulation().run()
