@@ -37,9 +37,9 @@ class FreezingSaltWaterFromAboveSimulation(BaseSimulation):
         
         self.liquid_viscosity = 1.
         
-        self.end_time = 2.
+        self.end_time = 6.
         
-        self.timestep_size = 1.
+        self.timestep_size = 2.
         
         self.initial_cold_wall_refinement_cycles = 6
         
@@ -47,7 +47,7 @@ class FreezingSaltWaterFromAboveSimulation(BaseSimulation):
         
         self.initial_pci_position = None
         
-        self.adaptive_goal_tolerance = 1.e-5
+        self.adaptive_goal_tolerance = 1.e-4
         
         self.xmin = 0.
         

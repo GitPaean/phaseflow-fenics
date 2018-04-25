@@ -175,3 +175,29 @@ class BinaryAlloySolidificationSimulation(phaseflow.simulation.Simulation):
             )*dx
         
         
+    def write_solution(self, file, state):
+        """ Write the solution to a file.
+
+        Parameters
+        ----------
+        file : phaseflow.helpers.SolutionFile
+
+            This method should have been called from within the context of the open `file`.
+        """
+        phaseflow.helpers.print_once("Writing solution to " + str(file.path))
+
+        pressure, velocity, temperature, solid_volume_fraction = state.solution.leaf_node().split()
+
+        pressure.rename("p", "pressure")
+
+        velocity.rename("u", "velocity")
+
+        temperature.rename("T", "temperature")
+        
+        solid_volume_fraction.rename("phi", "solid_volume_fraction")
+
+        for var in [pressure, velocity, temperature, solid_volume_fraction]:
+
+            file.write(var, state.time)
+            
+            
