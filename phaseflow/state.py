@@ -1,6 +1,6 @@
 """ **state.py** contains the State class. """
 import fenics
-import phaseflow
+import phaseflow.helpers
 
 
 class State:
@@ -13,50 +13,42 @@ class State:
     
     Parameters
     ----------
-    function_space : fenics.FunctionSpace
+    solution : fenics.Function
     
-        This is the function space on which lives the solution.
-    
-    element : fenics.MixedElement
-    
-        Ideally the function space should already know the element; but the author has failed to find it.
-        So, we store this reference separately.
+    time : float
     """
-    def __init__(self, function_space, element):
-        """ Set the solution, associated time, and associated function space and element. """
-        self.solution = fenics.Function(function_space)
+    def __init__(self, solution, time = 0.):
         
-        self.time = 0.
+        self._solution = solution
         
-        self.function_space = function_space
+        self.time = time
         
-        self.element = element
-        
+    @property
+    def solution(self):
     
-    def interpolate(self, expression_strings):
-        """Interpolate the solution from mathematical expressions.
+        return self._solution
+        
+    @solution.setter
+    def solution(self, value):
+    
+        self._solution = value.copy(deepcopy = True)
+        
+    def copy(self, deepcopy = False):
+        
+        return type(self)(self.solution.copy(deepcopy = True), 0. + self.time)
+        
+    def write_solution(self, file):
+        """ Write the solution to a file.
 
         Parameters
         ----------
-        expression_strings : tuple of strings 
-            
-            Each string will be an argument to a `fenics.Expression`.
+        file : phaseflow.helpers.SolutionFile
+
+            This method should have been called from within the context of the open `file`.
         """
-        interpolated_solution = fenics.interpolate(
-            fenics.Expression(expression_strings, element = self.element), 
-            self.function_space.leaf_node())
-        
-        self.solution.leaf_node().vector()[:] = interpolated_solution.leaf_node().vector() 
-        
-    
-    def set_solution_from_other_solution(self, other_solution):
+        phaseflow.helpers.print_once("Writing solution to " + str(file.path))
 
-        self.solution.leaf_node().vector()[:] = other_solution.leaf_node().vector()
-        
+        for var in self.solution.leaf_node().split():
 
-    def set_from_other_state(self, other_state):
-
-        self.set_solution_from_other_solution(other_state.solution)
-            
-        self.time = 0. + other_state.time
+            file.write(var, self.time)
         

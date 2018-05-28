@@ -3,6 +3,21 @@ import inspect
 import errno    
 import os
 import fenics
+import tempfile
+
+
+def unsteadiness(states):
+
+    assert((type(states[0]) is type(fenics.Function)) and (type(states[1]) is type(fenics.Function)))
+    
+    time_residual = fenics.Function(self.states[0].solution.leaf_node().function_space())
+    
+    time_residual.assign(self.states[0].solution.leaf_node() - self.states[1].solution.leaf_node())
+    
+    L2_norm_relative_time_residual = fenics.norm(time_residual.leaf_node(), "L2")/ \
+        fenics.norm(self.states[0].solution.leaf_node(), "L2")
+    
+    return L2_norm_relative_time_residual
 
 
 def run_simulation_with_temporary_output(simulation):
@@ -15,7 +30,7 @@ def run_simulation_with_temporary_output(simulation):
     ----------
     simulation : phaseflow.Simulation
     """
-    simulation.prefix_output_dir_with_tempdir = True
+    simulation.output_dir = tempfile.mkdtemp() + simulation.output_dir
     
     simulation.run()
 
