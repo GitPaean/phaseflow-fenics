@@ -31,7 +31,7 @@ class Simulation(metaclass = abc.ABCMeta):
         
         self._solving_state = self.State(fenics.Function(self.function_space))
         
-        self._solved_states = collections.deque([], number_of_solved_states_to_store)
+        self._solved_states = (self.State(fenics.Function(self.function_space)),)*number_of_solved_states_to_store
         
         initial_states = self.initial_states
         
@@ -44,9 +44,11 @@ class Simulation(metaclass = abc.ABCMeta):
             
             initial_states = (initial_states,)
     
-        for state in initial_states:
+        for solved_state, initial_state in zip(self.solved_states, initial_states):
         
-            self._solved_states.appendleft(state)
+            solved_state.set_from_other_instance(initial_state)
+        
+        self.solving_state.set_from_other_instance(self.solved_states[0])
         
         self.adaptive_goal_tolerance = 1.e12
         
@@ -104,44 +106,15 @@ class Simulation(metaclass = abc.ABCMeta):
     
         return self._mesh
         
-    @mesh.setter
-    def mesh(self, value):
-    
-        self._mesh = value
-        
-        self.function_space = fenics.FunctionSpace(value, self.element)
-        
     @property
     def function_space(self):
     
         return self._function_space
-        
-    @function_space.setter
-    def function_space(self, value):
-    
-        solved_states = [state.copy(deepcopy = True) for state in self.solved_states]
-        
-        self._function_space = value
-        
-        for i in range(len(self.solved_states)):
-        
-            self.solved_states[i].solution = fenics.project(
-                solved_states[i].solution.leaf_node(),
-                self.function_space.leaf_node())
-            
-            self.solved_states[i].time = solved_states[i].time
          
     @property
     def solving_state(self):
     
         return self._solving_state
-        
-    @solving_state.setter
-    def solving_state(self, value):
-    
-        assert(type(value) is type(self.solving_state))
-        
-        self._solving_state = value
     
     @property
     def solved_states(self):
@@ -152,7 +125,24 @@ class Simulation(metaclass = abc.ABCMeta):
     def quadrature_degree(self):
     
         return self._quadrature_degree
+    
+    @mesh.setter
+    def mesh(self, value):
+    
+        self._mesh = value
         
+    @function_space.setter
+    def function_space(self, value):
+        
+        self._function_space = value
+        
+    @solving_state.setter
+    def solving_state(self, value):
+    
+        assert(type(value) is type(self.solving_state))
+        
+        self._solving_state.set_from_other_instance(value)
+    
     @quadrature_degree.setter
     def quadrature_degree(self, value):
     
@@ -165,10 +155,6 @@ class Simulation(metaclass = abc.ABCMeta):
         else:
         
             self.integration_measure = fenics.dx(metadata={'quadrature_degree': value})
-    
-    def refine_initial_mesh(self):
-        """ Redefine this to refine the initial mesh before using the adaptive solver. """
-        pass
     
     def solve(self):
         """ Set up the problem and solver, and solve the problem. """
@@ -201,14 +187,24 @@ class Simulation(metaclass = abc.ABCMeta):
             
         solver.solve(self.adaptive_goal_tolerance)
     
+    def store_solved_state(self):
+        """ Here we're manually managing something like a FIFO queue. """
+        for i in range(1, len(self.solved_states)):
+        
+            self.solved_states[i].set_from_other_instance(self.solved_states[i - 1])
+            
+        self.solved_states[0].set_from_other_instance(self.solving_state)
+    
     def step_to_time(self, time):
     
-        self.solving_state = self.State(self.solved_states[0].solution.copy(deepcopy = True), time)
+        assert(time > self.solved_states[0].time)
+        
+        self.solving_state.time = time
         
         self.solve()
         
-        self.solved_states.appendleft(self.solving_state.copy(deepcopy = True))
-    
+        self.store_solved_state()
+        
     def write_checkpoint(self, checkpoint_dirpath):
         """Write states to a checkpoint file. """
         checkpoint_filepath = checkpoint_dirpath + "checkpoint_t" + str(self.solved_states[0].time) + ".h5"
@@ -307,6 +303,12 @@ class Simulation(metaclass = abc.ABCMeta):
         if not any(exceeds_tolerance):
         
             self.mesh = new_mesh
+            
+            self.function_space = new_function_space
+            
+            self.solved_states = new_states
+            
+            self.solving_state = self.State(fenics.Function(new_function_space), new_states[0].time)
         
         return new_mesh
         

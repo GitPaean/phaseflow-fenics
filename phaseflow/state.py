@@ -21,7 +21,7 @@ class State:
         
         self._solution = solution
         
-        self.time = time
+        self._time = time
         
     @property
     def solution(self):
@@ -31,12 +31,28 @@ class State:
     @solution.setter
     def solution(self, value):
     
-        self._solution = value.copy(deepcopy = True)
+        self._solution.leaf_node().vector()[:] = value.leaf_node().vector()
+    
+    @property
+    def time(self):
         
+        return self._time
+        
+    @time.setter
+    def time(self, value):
+    
+        self._time = 0. + value
+    
+    def set_from_other_instance(self, other_instance):
+        
+        self.solution = other_instance.solution
+        
+        self.time = other_instance.time
+    
     def copy(self, deepcopy = False):
         
         return type(self)(self.solution.copy(deepcopy = True), 0. + self.time)
-        
+    
     def write_solution(self, file):
         """ Write the solution to a file.
 

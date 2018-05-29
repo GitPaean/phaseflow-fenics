@@ -112,5 +112,5 @@ class ConvectionCoupledMeltingBenchmarkSimulation(phaseflow.phasechange_simulati
         
         for it in range(timesteps):
         
-            self.step_to_time(self.solved_states[0].time + (it + 1)*self.timestep_size)
+            self.step_to_time(time = self.solved_states[0].time + self.timestep_size)
             

@@ -37,9 +37,11 @@ class State(phaseflow.state.State):
     
         p, u, T = fenics.split(self.solution.leaf_node())
         
-        for var, label in zip((u, T, self.solution.function_space().mesh().leaf_node()), ("$u$", "$T$", "$\Omega_h$")):
+        for var, label in zip((u, T), ("$u$", "$T$", "$\Omega_h$")):
         
             fenics.plot(var)
+            
+            fenics.plot(self.solution.function_space().mesh().leaf_node())
 
             matplotlib.pyplot.title(label + ", $t = " + str(self.time) + "$")
 
@@ -141,6 +143,8 @@ class PhaseChangeSimulation(phaseflow.simulation.Simulation):
         
         mu = mu_L + (mu_S - mu_L)*phi(T)
         
+        gamma = self.pressure_penalty_factor
+        
         u_t, T_t, phi_t = self.make_time_discrete_terms()
         
         psi_p, psi_u, psi_T = fenics.TestFunctions(self.function_space)
@@ -149,19 +153,19 @@ class PhaseChangeSimulation(phaseflow.simulation.Simulation):
         
         inner, dot, grad, div, sym = fenics.inner, fenics.dot, fenics.grad, fenics.div, fenics.sym
         
-        F = (
-            -psi_p*div(u)
-            + dot(psi_u, u_t + f_B + dot(grad(u), u))
-            - div(psi_u)*p 
+        mass = -psi_p*div(u)
+        
+        momentum = dot(psi_u, u_t + f_B + dot(grad(u), u)) \
+            - div(psi_u)*p \
             + 2.*mu*inner(sym(grad(psi_u)), sym(grad(u)))
-            + psi_T*(T_t - 1./Ste*phi_t)
+            
+        enthalpy = psi_T*(T_t - 1./Ste*phi_t) \
             + dot(grad(psi_T), 1./Pr*grad(T) - T*u)
-            )*dx
+            
+        stabilization = -gamma*psi_p*p
         
-        gamma = self.pressure_penalty_factor
-        
-        F += -gamma*psi_p*p*dx
-        
+        F = (mass + momentum + enthalpy + stabilization)*dx
+            
         return F
     
     def plot_phi(self, state):
